@@ -45,6 +45,7 @@ function fakeProfileApis(
                     'probability' => 0.85,
                 ],
             ],
+            'count' => 2,
         ], $nationalize), $nationalizeStatus),
     ]);
 }
@@ -62,8 +63,14 @@ function insertProfile(array $overrides = []): array
 {
     $createdAt = $overrides['created_at'] ?? CarbonImmutable::parse('2026-04-15T12:00:00Z');
 
+    $uuid = (string) Str::uuid7();
+    if (! empty($overrides['id'])) {
+        $uuid = $overrides['id'];
+        unset($overrides['id']);
+    }
+
     $profile = array_merge([
-        'id' => (string) Str::uuid7(),
+        'uuid' => $uuid,
         'name' => 'ella',
         'gender' => 'female',
         'gender_probability' => 0.99,
@@ -76,7 +83,9 @@ function insertProfile(array $overrides = []): array
         'updated_at' => $createdAt,
     ], $overrides);
 
-    DB::table('profiles')->insert($profile);
+    DB::table('profiles')->insertGetId($profile);
+
+    $profile['id'] = $uuid;
 
     return $profile;
 }
@@ -139,7 +148,7 @@ it('creates a profile successfully, stores it, and returns the exact response sh
 
     $this->assertDatabaseCount('profiles', 1);
     $this->assertDatabaseHas('profiles', [
-        'id' => $profile['id'],
+        'uuid' => $profile['id'],
         'name' => 'ella',
         'gender' => 'female',
         'sample_size' => 1234,
@@ -619,7 +628,7 @@ it('deletes a profile successfully and returns no content', function () {
     ]);
 
     $this->assertDatabaseHas('profiles', [
-        'id' => $profile['id'],
+        'uuid' => $profile['id'],
     ]);
 
     $response = $this->deleteJson("/api/profiles/{$profile['id']}");
@@ -629,7 +638,7 @@ it('deletes a profile successfully and returns no content', function () {
         ->assertHeader('Access-Control-Allow-Origin', '*');
 
     $this->assertDatabaseMissing('profiles', [
-        'id' => $profile['id'],
+        'uuid' => $profile['id'],
     ]);
 });
 
