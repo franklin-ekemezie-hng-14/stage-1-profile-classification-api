@@ -25,20 +25,25 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->render(function (NotFoundHttpException $e) {
 
-            /** @var ModelNotFoundException $modelNotFoundException */
-            $modelNotFoundException = $e->getPrevious();
 
-            $message = match ($modelNotFoundException->getModel()) {
-                Profile::class  => 'Profile not found.',
-                default         => null
-            };
+            $previousException = $e->getPrevious();
 
-            if ($message) {
-                return response()->json([
-                    'status'    => 'error',
-                    'message'   => $message,
-                ], Response::HTTP_NOT_FOUND);
+            if ($previousException instanceof ModelNotFoundException) {
+
+                $message = match ($previousException->getModel()) {
+                    Profile::class  => 'Profile not found.',
+                    default         => null
+                };
+
+                if ($message) {
+                    return response()->json([
+                        'status'    => 'error',
+                        'message'   => $message,
+                    ], Response::HTTP_NOT_FOUND);
+                }
+
             }
+
 
             return null;
         });
