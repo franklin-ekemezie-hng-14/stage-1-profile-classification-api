@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'genderize' => [
+        'url'   => env('GENDERIZE_API_ENDPOINT', 'https://api.genderize.io'),
+        'name'  => 'Genderize',
+    ],
+
+    'agify' => [
+        'url'   => env('AGIFY_API_ENDPOINT', 'https://api.agify.io'),
+        'name'  => 'Agify',
+    ],
+
+    'nationalize' => [
+        'url'   => env('NATIONALIZE_API_ENDPOINT', 'https://api.nationalize.io'),
+        'name'  => 'Nationalize',
+    ]
+
 ];
