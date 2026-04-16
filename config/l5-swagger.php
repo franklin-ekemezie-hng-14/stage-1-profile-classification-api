@@ -295,6 +295,9 @@ return [
                  * the tag.
                  */
                 'filter' => env('L5_SWAGGER_UI_FILTERS', true), // true | false
+                'default_model_rendering' => env('L5_SWAGGER_UI_DEFAULT_MODEL_RENDERING', 'model'),
+                'default_model_expand_depth' => env('L5_SWAGGER_UI_DEFAULT_MODEL_EXPAND_DEPTH', 3),
+                'default_models_expand_depth' => env('L5_SWAGGER_UI_DEFAULT_MODELS_EXPAND_DEPTH', 3),
             ],
 
             'authorization' => [

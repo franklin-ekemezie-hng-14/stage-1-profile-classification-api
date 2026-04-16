@@ -157,6 +157,9 @@
             docExpansion : "{!! config('l5-swagger.defaults.ui.display.doc_expansion', 'none') !!}",
             deepLinking: true,
             filter: {!! config('l5-swagger.defaults.ui.display.filter') ? 'true' : 'false' !!},
+            defaultModelRendering: "{!! config('l5-swagger.defaults.ui.display.default_model_rendering', 'model') !!}",
+            defaultModelExpandDepth: {!! (int) config('l5-swagger.defaults.ui.display.default_model_expand_depth', 3) !!},
+            defaultModelsExpandDepth: {!! (int) config('l5-swagger.defaults.ui.display.default_models_expand_depth', 3) !!},
             persistAuthorization: "{!! config('l5-swagger.defaults.ui.authorization.persist_authorization') ? 'true' : 'false' !!}",
 
         })
