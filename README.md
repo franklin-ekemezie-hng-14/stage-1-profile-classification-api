@@ -1,58 +1,248 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Stage 1 Profile Classification API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel API that accepts a name, queries multiple public classification services, persists the aggregated result, and exposes endpoints for retrieving, filtering, and deleting stored profiles.
 
-## About Laravel
+This project was built for the HNG Backend Stage 1 task and focuses on three things:
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- multi-API integration
+- durable persistence
+- predictable, testable API responses
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Overview
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Given a name, the application calls the following upstream services:
 
-## Learning Laravel
+- Genderize: predicts gender and probability
+- Agify: predicts age
+- Nationalize: predicts likely nationality
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+The application then:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- derives `age_group` from the returned age
+- selects the most likely country from the Nationalize response
+- stores the profile in the database
+- prevents duplicate records for the same normalized name
+- serves the stored data through RESTful endpoints
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Tech Stack
 
-## Agentic Development
+- PHP 8.3
+- Laravel 13
+- SQLite for local development
+- Pest for automated testing
+- GitHub Actions for CI
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## API Endpoints
 
-```bash
-composer require laravel/boost --dev
+### Health Check
 
-php artisan boost:install
+`GET /`
+
+Returns a small JSON payload confirming the API is running.
+
+### Create Profile
+
+`POST /api/profiles`
+
+Request body:
+
+```json
+{
+  "name": "ella"
+}
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Successful response:
 
-## Contributing
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "0196354c-c51f-7b79-b5d0-72245f52f001",
+    "name": "ella",
+    "gender": "female",
+    "gender_probability": 0.99,
+    "sample_size": 1234,
+    "age": 46,
+    "age_group": "adult",
+    "country_id": "DRC",
+    "country_probability": 0.85,
+    "created_at": "2026-04-15T12:00:00Z"
+  }
+}
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+If the same name already exists, the API returns the stored record instead of creating a duplicate.
 
-## Code of Conduct
+### Get Single Profile
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+`GET /api/profiles/{id}`
 
-## Security Vulnerabilities
+Returns a single stored profile by UUID.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Get All Profiles
 
-## License
+`GET /api/profiles`
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Supports optional case-insensitive filters:
+
+- `gender`
+- `country_id`
+- `age_group`
+
+Example:
+
+```text
+/api/profiles?gender=male&country_id=ng&age_group=adult
+```
+
+### Delete Profile
+
+`DELETE /api/profiles/{id}`
+
+Deletes a stored profile and returns `204 No Content` on success.
+
+## Classification Rules
+
+### Age Group
+
+- `0-12` => `child`
+- `13-19` => `teenager`
+- `20-59` => `adult`
+- `60+` => `senior`
+
+### Nationality
+
+The API selects the country with the highest probability from the Nationalize response.
+
+## Error Handling
+
+All error responses use the same top-level format:
+
+```json
+{
+  "status": "error",
+  "message": "..."
+}
+```
+
+Supported error conditions include:
+
+- `400 Bad Request` for missing or empty `name`
+- `422 Unprocessable Entity` for invalid request types
+- `404 Not Found` for unknown profiles
+- `502 Bad Gateway` for invalid or failed upstream API responses
+
+## Idempotency
+
+Profile creation is idempotent by name. If a profile already exists for the submitted name, the API returns the existing record rather than inserting a second one.
+
+## Local Setup
+
+### Requirements
+
+- PHP 8.3+
+- Composer
+- Node.js and npm
+- SQLite
+
+### Installation
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+### Database
+
+This project is configured to use SQLite by default for local development.
+
+Create the SQLite database file if it does not already exist:
+
+```bash
+touch database/database.sqlite
+```
+
+Run migrations:
+
+```bash
+php artisan migrate
+```
+
+### Start the Application
+
+Run the API server:
+
+```bash
+php artisan serve
+```
+
+Or use the Laravel development workflow:
+
+```bash
+composer run dev
+```
+
+## Environment Variables
+
+Important environment values in `.env.example`:
+
+- `DB_CONNECTION=sqlite`
+- `DB_DATABASE=database/database.sqlite`
+- `SESSION_DRIVER=file`
+- `CACHE_STORE=file`
+- `QUEUE_CONNECTION=sync`
+- `GENDERIZE_API_ENDPOINT=https://api.genderize.io`
+- `AGIFY_API_ENDPOINT=https://api.agify.io`
+- `NATIONALIZE_API_ENDPOINT=https://api.nationalize.io`
+
+## Testing
+
+The project uses Pest for feature and unit tests.
+
+Run the full test suite:
+
+```bash
+php artisan test
+```
+
+Run only the profile API tests:
+
+```bash
+php artisan test tests/Feature/ProfileApiTest.php
+```
+
+The test suite mocks all external HTTP requests. No real upstream API calls are made during automated tests.
+
+## Continuous Integration
+
+GitHub Actions runs the test suite automatically on every push and pull request.
+
+The workflow is defined in:
+
+```text
+.github/workflows/ci.yml
+```
+
+## Project Structure
+
+Key application areas:
+
+- `app/Actions` - orchestration for profile creation
+- `app/DTOs` - structured transfer objects for upstream and internal data
+- `app/Enums` - domain enum values such as age groups
+- `app/Exceptions` - upstream API failure and invalid data exceptions
+- `app/Http/Controllers` - API controllers
+- `app/Http/Resources` - response shaping
+- `app/Repositories` - profile persistence abstraction
+- `app/Services` - external API integrations and aggregation logic
+- `database/migrations` - schema definition
+- `tests/Feature/ProfileApiTest.php` - end-to-end contract coverage for the API
+
+## Notes
+
+- IDs are exposed as UUIDs
+- timestamps are returned in ISO 8601 UTC format
+- the root endpoint returns a JSON status response instead of an HTML welcome page
+- local runtime defaults favor simplicity: file sessions, file cache, and sync queue processing
