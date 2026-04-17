@@ -5,6 +5,10 @@ use OpenApi\scan;
 
 return [
     'default' => 'default',
+    'servers' => [
+        'url' => env('APP_URL'),
+        'description' => 'Stage 1 Profile Classification API server',
+    ],
     'documentations' => [
         'default' => [
             'api' => [
