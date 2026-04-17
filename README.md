@@ -102,6 +102,54 @@ Example:
 
 Deletes a stored profile and returns `204 No Content` on success.
 
+## Using curl
+
+You can consume the API from the command line with `curl`.
+
+Set a base URL first:
+
+```bash
+BASE_URL="http://127.0.0.1:8000"
+```
+
+Create a profile:
+
+```bash
+curl -X POST "$BASE_URL/api/profiles" \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"ella"}'
+```
+
+Get a single profile:
+
+```bash
+curl -H "Accept: application/json" \
+  "$BASE_URL/api/profiles/{uuid}"
+```
+
+List all profiles:
+
+```bash
+curl -H "Accept: application/json" \
+  "$BASE_URL/api/profiles"
+```
+
+Filter profiles:
+
+```bash
+curl -H "Accept: application/json" \
+  "$BASE_URL/api/profiles?gender=male&country_id=ng&age_group=adult"
+```
+
+Delete a profile:
+
+```bash
+curl -X DELETE \
+  -H "Accept: application/json" \
+  "$BASE_URL/api/profiles/{uuid}"
+```
+
 ## Classification Rules
 
 ### Age Group
